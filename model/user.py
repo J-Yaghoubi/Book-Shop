@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from configs import DbConfig
 from typing import ClassVar
 import re
-from exceptions import StructureError
+from exceptions import InputTypeError, StructureError
 from model.template import DBModel
 from uuid import uuid4
 from hashlib import sha1
@@ -43,10 +43,10 @@ class User(DBModel):
     ]
 
     messages: ClassVar[list] = [
-        'alphabetic 2~14 char',
-        'alphabetic 2~14 char',
-        'numeric, prefix and 9 digits',
-        'numeric with 10 digits',
+        'alphabetic 2~15 char',
+        'alphabetic 2~15 char',
+        'numeric, 10 primary digits',
+        'numeric 0 with 9 digits',
         'alphanumeric 4~20 char',
         'complex with 8~40 char',
         'numeric max 10 digits',
@@ -55,10 +55,10 @@ class User(DBModel):
     ]
 
     patterns: ClassVar[dict] = {
-        'first_name': r'^([a-zA-Z]+[a-zA-Z\-]*[a-zA-Z]+){,20}$',
-        'last_name': r'^([a-zA-Z]+[a-zA-Z\-]*[a-zA-Z]+){,20}$',
-        'phone': r'^(09|\+98)[\d]{9}$',
-        'national_id': r'^0\d{9}$',
+        'first_name': r'^([a-zA-Z]+[a-zA-Z\- ]*[a-zA-Z]+){2,15}$',
+        'last_name': r'^([a-zA-Z]+[a-zA-Z\- ]*[a-zA-Z]+){2,15}$',
+        'phone': r'^(0|\+98)?[1-9]+[\d]{9}$',
+        'national_id': r'^(0)?\d{9}$',
         'username': r'^\w{4,20}$',
         'password': r'^(?=.*\d)(?=.*[a-z])(?=.*[a-zA-Z]).{8,40}$',
         'balance': r'^\d{1,10}$',
@@ -70,6 +70,8 @@ class User(DBModel):
     def __post_init__(self):
         counter = 0
         for key, value in self.__dict__.items():
+            if not isinstance(value, str):
+                raise InputTypeError(value, 'should be in form of string')
             if not re.match(self.__class__.patterns[key], value):
                 raise StructureError(key, self.__class__.messages[counter])
             counter += 1

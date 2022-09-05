@@ -15,5 +15,6 @@ class StructureError(CustomException):
     pass
 
 
-
+class InputTypeError(CustomException):
+    pass
 

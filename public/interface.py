@@ -1,18 +1,19 @@
+import os
+import shutil
+import logging
+from getpass import getpass
+from hashlib import sha1
+
+from core.utils import clear_screen
 from configs import Info
-from configs import LoggedUser
 from configs import DbConfig
 from model import User
 from model import Content
 from model import Comment
 from exceptions import StructureError
+from users.temp import LoggedUser
 from core.managers import DBManager
 from core.cryptic import *
-import shutil
-from core.utils import clear_screen
-import logging
-from hashlib import sha1
-import os
-from getpass import getpass
 
 
 class Operations:
@@ -237,7 +238,7 @@ class Operations:
         """
         # if the user balance is zero he can not do shopping
         if int(LoggedUser.BALANCE) < 1:
-            print('Gift and get! your balance is zero write now ...')
+            print('Gift and get! your balance is zero right now ...')
         else:     
             # Read the content of store that the user is not its owner
             data = DBManager().read('id, name, owner, user_id', Content, f"user_id != '{LoggedUser.ID}'")
@@ -289,6 +290,7 @@ class Operations:
 
                                 # Change the owner of content
                                 DBManager().update(Content, 'user_id', f'{LoggedUser.ID}', f"id = '{content_id[key-1]}'") 
+                                DBManager().update(Content, 'owner', f"'{LoggedUser.FULLNAME}'", f"id = '{content_id[key-1]}'")
                                 logging.debug(f'Owner has been changed for: {content_name[key-1]}')
 
                                 # Decrease balance by one and update the database
@@ -307,7 +309,7 @@ class Operations:
                             clear_screen()
                             comment = input('Your comment (max 250) >> ')[:249]
                             if comment: 
-                                DBManager().insert(Comment(comment, LoggedUser.ID, content_id[key-1]))
+                                DBManager().insert(Comment(f"{LoggedUser.FULLNAME}: {comment}", LoggedUser.ID, content_id[key-1]))
                                 logging.debug(f'Comment on content id: {content_id[key-1]} by: {LoggedUser.FULLNAME}') 
                                 print('Your comment has been send successfully\n')
                         else:
