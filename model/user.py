@@ -8,7 +8,7 @@ from uuid import uuid4
 from hashlib import sha1
 
 
-@dataclass(slots=True)
+@dataclass()
 class User(DBModel):
     """
         This class act as a User-Table for storing the 

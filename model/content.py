@@ -5,7 +5,7 @@ from exceptions import StructureError
 from model.template import DBModel
 
 
-@dataclass(slots=True)
+@dataclass()
 class Content(DBModel): 
     """
         This class act as a Content-Table for storing the information 

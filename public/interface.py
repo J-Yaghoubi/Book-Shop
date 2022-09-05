@@ -43,7 +43,7 @@ class Operations:
             find = DBManager().read('id', User, f"username = '{inputs[4].lower()}'")   
 
             if find:
-                print('\nUsername is duplicated. Try again later...')
+                print('\nUsername is duplicated. Try another one later...')
             else:    
                 # Add to database    
                 u = User(inputs[0].lower(), inputs[1].lower(), inputs[2], inputs[3], inputs[4].lower(), inputs[5])
@@ -66,8 +66,6 @@ class Operations:
         """
             Handle the request of changing the user information
         """
-
-        find = DBManager().read('first_name, last_name, phone, password', User, f"id='{LoggedUser.ID}'") 
         print('Feed.update Enter.old-data\n')
 
         fname = input(f'{User.columns[0]} ({User.messages[0]}) => ')
@@ -75,21 +73,21 @@ class Operations:
         phone = input(f'{User.columns[2]} ({User.messages[2]}) => ')
         password = input(f'{User.columns[5]} ({User.messages[5]}) => ')
 
-        if fname == '': fname = find[0][0]
-        if lname == '': lname = find[0][1]
-        if phone == '': phone = find[0][2]
-        if password == '': password = find[0][3]
+        if fname == '': fname = LoggedUser.FIRSTNAME
+        if lname == '': lname = LoggedUser.LASTNAME
+        if phone == '': phone = LoggedUser.PHONE
+        if password == '': password = LoggedUser.PASSWORD
 
         try:    
             # validate the inputted data
-            User(fname, lname, phone , '0111111111', 'test', password)
+            User(fname, lname, phone , LoggedUser.NATIONAL, LoggedUser.USERNAME, password)
             # update information's
             DBManager().update(User, '(first_name, last_name, phone, password)', f"('{fname.lower()}', '{lname.lower()}', '{phone}', '{password}')", f"id = '{LoggedUser.ID}'")
-            logging.debug(f'Data edited for: {find[0][0]} {find[0][1]}')
+            logging.debug(f'Data edited for: {LoggedUser.FULLNAME}')
             print('\nEdit has been successful')
 
         except StructureError as e:
-            logging.warning(f'Failed to edit data for: {find[0][0]} {find[0][1]}')
+            logging.warning(f'Failed to edit data for: {LoggedUser.FULLNAME}')
             print(e)
 
     @staticmethod
@@ -109,24 +107,40 @@ class Operations:
         """
             User login process
         """
-
         u = (input(f'username >> ')).lower()
         p = getpass(f'password >> ') 
         p += DbConfig.PASSWORD.value
         p = sha1(p.encode()).hexdigest()        
 
-        find = DBManager().read('id, first_name, last_name', User, f"username = '{u}' and password = '{p}'")   
-        
+        find = DBManager().read('*', User, f"username = '{u}' and password = '{p}'")
+
         if not find:
             logging.warning(f'Failed attempt for login')
             print('\nSorry!\nPlease check your input or register as new client')
         else:
             find = find[0]
             LoggedUser.ID = find[0]
-            LoggedUser.FULLNAME = f'{find[1]} {find[2]}'
-            logging.debug(f'{find[1]} {find[2]} has been logged in')       
+            LoggedUser.FIRSTNAME = find[1]
+            LoggedUser.LASTNAME = find[2]
+            LoggedUser.PHONE = find[3]
+            LoggedUser.NATIONAL = find[4]
+            LoggedUser.USERNAME = find[5]
+            LoggedUser.PASSWORD = find[6]
+            LoggedUser.BALANCE = find[7]
+            LoggedUser.CODE = find[8]
+            LoggedUser.FULLNAME = f'{LoggedUser.FIRSTNAME} {LoggedUser.LASTNAME}'
+            logging.debug(f'{LoggedUser.FULLNAME} has been logged in')       
             print(f'\nWelcome {LoggedUser.FULLNAME}')
             return 'Logged'
+
+    @staticmethod
+    def information() -> None:
+        print(f'Name: {LoggedUser.FIRSTNAME}')
+        print(f'Family: {LoggedUser.LASTNAME}')
+        print(f'Phone: {LoggedUser.PHONE}')
+        print(f'National: {LoggedUser.NATIONAL}')
+        print(f'Username: {LoggedUser.USERNAME}')
+        print(f'Code: {LoggedUser.CODE}')
 
     @staticmethod
     def add_book() -> None:
@@ -150,16 +164,16 @@ class Operations:
 
             else:    
                 # Read the key and encrypt file with this key
-                code = DBManager().read('code', User, f"id = '{LoggedUser.ID}'")[0][0]
+                code = LoggedUser.CODE
                 crypto_key = load_key(f'users/{code}.key') 
                 encrypt('store/' + name, crypto_key)
 
                 # Save information to the database
-                DBManager().insert(Content(LoggedUser.FULLNAME, LoggedUser.ID, name))
+                DBManager().insert(Content(f'{LoggedUser.FULLNAME}', LoggedUser.ID, name))
                 logging.debug(f'{name} has been registered for {LoggedUser.FULLNAME}')   
 
                 # Increase balance by one and update the database
-                Operations.change_balance()
+                Operations.update_balance()
                 logging.debug(f'Balance for {LoggedUser.FULLNAME} increased by 0ne')  
 
                 print('Your gift added to the store successfully...')
@@ -170,11 +184,14 @@ class Operations:
             List the user's asset and provide some functionality to working on them
         """
         clear_screen()
+        print('Order        Book Name           ')
+        print('==================================\n')
+       
         content_id = []   
         content_name = []
         data = DBManager().read('id, name', Content, f"user_id = '{LoggedUser.ID}' ")   
         for idx, row in enumerate(data, 1):
-            print(idx, row[1])
+            print(f'{idx:<10}', f'{row[1]:<20}')
             content_id.append(row[0])
             content_name.append(row[1]) 
 
@@ -202,17 +219,16 @@ class Operations:
                                 os.remove(f"store/{content_name[key-1]}")
 
                             DBManager().delete(Content, f'id = {content_id[key-1]}')    
-                            Operations.change_balance(False)
+                            Operations.update_balance(False)
                             logging.warning(f'Content removed from the shop: {content_name[key-1]}')
 
                         else:
                             Operations.assets()
 
     @staticmethod
-    def change_balance(increase: bool = True) -> None:
-        bal = DBManager().read('balance', User, f"id = '{LoggedUser.ID}'")   
-        bal = int(bal[0][0]) + 1 if increase else int(bal[0][0]) - 1
-        DBManager().update(User, 'balance', bal, f"id = '{LoggedUser.ID}'") 
+    def update_balance(increase: bool = True) -> None:
+        LoggedUser.BALANCE  = int(LoggedUser.BALANCE) + 1 if increase else int(LoggedUser.BALANCE) - 1
+        DBManager().update(User, 'balance', LoggedUser.BALANCE, f"id = '{LoggedUser.ID}'") 
 
     @staticmethod
     def shopping() -> None:
@@ -220,8 +236,7 @@ class Operations:
             Shopping and commenting on content
         """
         # if the user balance is zero he can not do shopping
-        bal = DBManager().read('balance', User, f"id = '{LoggedUser.ID}'")
-        if int(bal[0][0]) < 1:
+        if int(LoggedUser.BALANCE) < 1:
             print('Gift and get! your balance is zero write now ...')
         else:     
             # Read the content of store that the user is not its owner
@@ -269,8 +284,7 @@ class Operations:
                                 code = DBManager().read('code', User, f"id = '{user_id[key-1]}'")[0][0]
                                 crypto_key = load_key(f'users/{code}.key')
                                 decrypt(f'store/{content_name[key-1]}', crypto_key)
-                                code = DBManager().read('code', User, f"id = '{LoggedUser.ID}'")[0][0] 
-                                crypto_key = load_key(f'users/{code}.key')
+                                crypto_key = load_key(f'users/{LoggedUser.CODE}.key')
                                 encrypt(f'store/{content_name[key-1]}', crypto_key)
 
                                 # Change the owner of content
@@ -278,10 +292,10 @@ class Operations:
                                 logging.debug(f'Owner has been changed for: {content_name[key-1]}')
 
                                 # Decrease balance by one and update the database
-                                Operations.change_balance(False)
+                                Operations.update_balance(False)
                                 logging.debug(f'Balance has been updated for: {LoggedUser.FULLNAME}')
-
                                 print('Your shopping has been successfully\n')                            
+                            
                             else:
                                 DBManager().delete(Comment, f'content_id = {content_id[key-1]}')   
                                 DBManager().delete(Content, f'id = {content_id[key-1]}')    
@@ -299,5 +313,10 @@ class Operations:
                         else:
                             Operations.shopping_continue(data)
 
+    @staticmethod  
+    def logout() -> None:
+        print('Logging out...')
+        logging.debug(f'{LoggedUser.FULLNAME} has been logged-out')
+        return 'Main menu'
 
     

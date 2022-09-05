@@ -5,7 +5,7 @@ from exceptions import StructureError
 from model.template import DBModel
 
 
-@dataclass(slots=True)
+@dataclass()
 class Comment(DBModel): 
     """
         This class act as a Comment-Table for storing the comments
