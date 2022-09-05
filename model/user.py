@@ -2,13 +2,13 @@ from dataclasses import dataclass
 from configs import DbConfig
 from typing import ClassVar
 import re
-from model.exceptions import StructureError
+from exceptions import StructureError
 from model.template import DBModel
 from uuid import uuid4
 from hashlib import sha1
 
 
-@dataclass
+@dataclass(slots=True)
 class User(DBModel):
     """
         This class act as a User-Table for storing the 
@@ -20,11 +20,11 @@ class User(DBModel):
         first_name VARCHAR(30) NOT NULL,
         last_name VARCHAR(30) NOT NULL,
         phone VARCHAR(20) NOT NULL,
-        national_id VARCHAR(10) UNIQUE NOT NULL,
-        username VARCHAR(20) NOT NULL,
+        national_id VARCHAR(10) NOT NULL,
+        username VARCHAR(20) UNIQUE NOT NULL,
         password VARCHAR(50) NOT NULL,
         balance INT DEFAULT 0,
-        code VARCHAR(40) NOT NULL,
+        code VARCHAR(50) NOT NULL,
         permission VARCHAR(20) NOT NULL
     """
     TABLE: ClassVar[str] = 'users'
@@ -35,7 +35,7 @@ class User(DBModel):
     username: str
     password: str
     balance: str = '0'
-    code: str = str(uuid4)
+    code: str = str(uuid4())
     permission: str = 'basic'
 
     columns:  ClassVar[list] = [
@@ -43,15 +43,15 @@ class User(DBModel):
     ]
 
     messages: ClassVar[list] = [
-        'should be alphabetic with 2~14 char',
-        'should be alphabetic with 2~14 char',
-        'should be numeric with prefix and 9 chars',
-        'should be numeric with 10 digits',
-        'should be alphanumeric with 4~20 char',
-        'should be complex with 8~20 char',
-        'should be numeric max 10 digits',
-        'should be max 40 chars',
-        'should be max 20 chars'
+        'alphabetic 2~14 char',
+        'alphabetic 2~14 char',
+        'numeric, prefix and 9 digits',
+        'numeric with 10 digits',
+        'alphanumeric 4~20 char',
+        'complex with 8~40 char',
+        'numeric max 10 digits',
+        'max 40 chars',
+        'max 20 chars'
     ]
 
     patterns: ClassVar[dict] = {
@@ -60,7 +60,7 @@ class User(DBModel):
         'phone': r'^(09|\+98)[\d]{9}$',
         'national_id': r'^0\d{9}$',
         'username': r'^\w{4,20}$',
-        'password': r'^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,20}$',
+        'password': r'^(?=.*\d)(?=.*[a-z])(?=.*[a-zA-Z]).{8,40}$',
         'balance': r'^\d{1,10}$',
         'code': r'^.{1,40}$',
         'permission': r'^.{1,20}$'
@@ -74,5 +74,7 @@ class User(DBModel):
                 raise StructureError(key, self.__class__.messages[counter])
             counter += 1
 
-        passphrase = DbConfig.PASSWORD + self.password
+        passphrase = DbConfig.PASSWORD.value + self.password
         self.password = sha1(passphrase.encode()).hexdigest()
+
+

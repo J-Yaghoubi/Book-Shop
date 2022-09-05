@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import ClassVar
 import re
-from model.exceptions import StructureError
+from exceptions import StructureError
 from model.template import DBModel
 
 
-@dataclass
+@dataclass(slots=True)
 class Content(DBModel): 
     """
         This class act as a Content-Table for storing the information 
@@ -16,7 +16,9 @@ class Content(DBModel):
         id SERIAL PRIMARY KEY,
         name VARCHAR(50) NOT NULL,
         owner VARCHAR(100) NOT NULL,
-        user_id int REFERENCES users (id)
+        user_id int REFERENCES users (id),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     """
     TABLE: ClassVar[str] = 'contents'
     owner : str

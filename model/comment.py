@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import ClassVar
 import re
-from model.exceptions import StructureError
+from exceptions import StructureError
 from model.template import DBModel
 
 
-@dataclass
+@dataclass(slots=True)
 class Comment(DBModel): 
     """
         This class act as a Comment-Table for storing the comments
@@ -23,7 +23,7 @@ class Comment(DBModel):
     content_id : int   
 
     def __post_init__(self):
-        p = re.match(r'^[\w\-\.]{1,250}$', self.comment)
+        p = re.match(r'^.{1,250}$', self.comment)
         if not p:
-            raise StructureError(self.comment, 'should be alphanumeric and 1~250 chars')
+            raise StructureError(self.comment, 'not empty and max 250 chars')
 

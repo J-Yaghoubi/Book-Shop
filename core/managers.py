@@ -80,17 +80,17 @@ class DBManager:
         query = f"SELECT {fields} FROM {model_class.TABLE} where {condition};" if  condition else f"SELECT {fields} FROM {model_class.TABLE};" 
         return self._execute(query, True)
 
-    def update(self, model_class: DBModel, fields: str, value: str, condition: str) -> None:
+    def update(self, model_class: DBModel, field: str, value: str, condition: str) -> None:
         """
             update selected fields based on the custom condition
         """
-        query = f"UPDATE {model_class.TABLE} SET ({fields}) = ({value}) WHERE {condition};"
+        query = f"UPDATE {model_class.TABLE} SET {field} = {value} WHERE {condition};"
         self._execute(query)
 
-    def delete(self, model_class: DBModel, id: int) -> None:
+    def delete(self, model_class: DBModel, condition: int) -> None:
         """
             delete information from the selected table
         """
-        query = f"DELETE FROM {model_class.TABLE} where id='{id}'"
+        query = f"DELETE FROM {model_class.TABLE} WHERE {condition};"   
         self._execute(query)
         

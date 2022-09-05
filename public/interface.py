@@ -4,14 +4,16 @@ from configs import DbConfig
 from model import User
 from model import Content
 from model import Comment
-from model.exceptions import StructureError
+from exceptions import StructureError
 from core.managers import DBManager
-from cryptography.fernet import Fernet
+from core.cryptic import *
 import shutil
 from core.utils import clear_screen
 import logging
 from hashlib import sha1
 import os
+from getpass import getpass
+
 
 class Operations:
     """
@@ -48,10 +50,9 @@ class Operations:
                 DBManager().insert(u)
                 
                 # Generate key and store in file
-                key = Fernet.generate_key()
-                with open('users/' + u.code + '.key', 'wb') as f:
-                    f.write(key)
+                write_key('users/' + u.code + '.key')
 
+                # Log the operation
                 logging.debug(f'New User has been registered: {inputs[0].lower()} {inputs[1].lower()}')
                 print('\nRegistration has been successful')
                 print(f'\nThis is your encrypting code: {u.code}\nStore it in safe place...')
@@ -72,7 +73,7 @@ class Operations:
         fname = input(f'{User.columns[0]} ({User.messages[0]}) => ')
         lname = input(f'{User.columns[1]} ({User.messages[1]}) => ')
         phone = input(f'{User.columns[2]} ({User.messages[2]}) => ')
-        password = input(f'{User.columns[4]} ({User.messages[4]}) => ')
+        password = input(f'{User.columns[5]} ({User.messages[5]}) => ')
 
         if fname == '': fname = find[0][0]
         if lname == '': lname = find[0][1]
@@ -83,7 +84,7 @@ class Operations:
             # validate the inputted data
             User(fname, lname, phone , '0111111111', 'test', password)
             # update information's
-            DBManager().update(User, 'first_name, last_name, phone, password', f"'{fname.lower()}', '{lname.lower()}', '{phone}', '{password}'", f"id = '{LoggedUser.ID}'")
+            DBManager().update(User, '(first_name, last_name, phone, password)', f"('{fname.lower()}', '{lname.lower()}', '{phone}', '{password}')", f"id = '{LoggedUser.ID}'")
             logging.debug(f'Data edited for: {find[0][0]} {find[0][1]}')
             print('\nEdit has been successful')
 
@@ -98,9 +99,9 @@ class Operations:
         """
         data = DBManager().read('id, name, owner', Content, '')
         print('ID        Book Name           Owner')
-        print('============================================\n')
+        print('==================================================\n')
         for row in data:
-            print(f"{str(row[0]):<10}{row[1]:<20}{row[2]:<20}") 
+            print(f"{str(row[0]):<10}{row[1]:<20}{row[2]:<26}") 
         logging.warning(f'Anonymous user explored the shop')
 
     @staticmethod
@@ -110,8 +111,8 @@ class Operations:
         """
 
         u = (input(f'username >> ')).lower()
-        p = input(f'password >> ') 
-        p += DbConfig.PASSWORD
+        p = getpass(f'password >> ') 
+        p += DbConfig.PASSWORD.value
         p = sha1(p.encode()).hexdigest()        
 
         find = DBManager().read('id, first_name, last_name', User, f"username = '{u}' and password = '{p}'")   
@@ -149,18 +150,19 @@ class Operations:
 
             else:    
                 # Read the key and encrypt file with this key
-                code = DBManager().read('code', User, f"id = '{LoggedUser.ID}'") 
-                Operations.cryptic(code, name, encrypt=True)
+                code = DBManager().read('code', User, f"id = '{LoggedUser.ID}'")[0][0]
+                crypto_key = load_key(f'users/{code}.key') 
+                encrypt('store/' + name, crypto_key)
 
                 # Save information to the database
                 DBManager().insert(Content(LoggedUser.FULLNAME, LoggedUser.ID, name))
                 logging.debug(f'{name} has been registered for {LoggedUser.FULLNAME}')   
 
                 # Increase balance by one and update the database
-                bal = DBManager().read('balance', User, f"id = '{LoggedUser.ID}'")   
-                bal = int(bal[0][0]) + 1
-                DBManager().update(User, 'balance', bal, f"id = '{LoggedUser.ID}'") 
+                Operations.change_balance()
                 logging.debug(f'Balance for {LoggedUser.FULLNAME} increased by 0ne')  
+
+                print('Your gift added to the store successfully...')
 
     @staticmethod            
     def assets() -> None:
@@ -171,23 +173,24 @@ class Operations:
         content_id = []   
         content_name = []
         data = DBManager().read('id, name', Content, f"user_id = '{LoggedUser.ID}' ")   
-        for row in data:
-            print(row[0])
+        for idx, row in enumerate(data, 1):
+            print(idx, row[1])
             content_id.append(row[0])
             content_name.append(row[1]) 
 
         # If user own assets
         if content_name:
             key = input('\nID.select C.cancel >> ')    
-            if key.lower() == 'c':
-                pass
-            else:
+            if key.lower() != 'c':
                 try:
                     key = int(key)
+                except:
+                    Operations.assets()
+                else:        
                     if key < 1 or key > len(content_name):
                         Operations.assets()   
                     else:
-                        users_comment = DBManager().read('code', Comment, f"id = '{content_id[key-1]}'") 
+                        users_comment = DBManager().read('comment', Comment, f"id = '{content_id[key-1]}'") 
                         for c in users_comment:
                             print(c)
 
@@ -195,44 +198,21 @@ class Operations:
 
                         # Delete information from database and content from the store
                         if  switch.lower() == 'r':
-                            if os.path.exists(f"users/{content_name[key-1]}"):
-                                os.remove(f"users/{content_name[key-1]}")
+                            if os.path.exists(f"store/{content_name[key-1]}"):
+                                os.remove(f"store/{content_name[key-1]}")
 
-                            DBManager().delete(Content, {content_id[key-1]})    
+                            DBManager().delete(Content, f'id = {content_id[key-1]}')    
+                            Operations.change_balance(False)
                             logging.warning(f'Content removed from the shop: {content_name[key-1]}')
 
-                        # Comment on the content 
                         else:
                             Operations.assets()
-                except:
-                    Operations.assets()
 
     @staticmethod
-    def cryptic(code: str, content: str, encrypt: bool = True):
-        """
-            Crypt and Decrypt the content of the store
-        """
-        # Read the key
-        with open('users/' +  f'{code}.key', 'rb') as f:
-            key = f.read()
-
-        cipher_suite = Fernet(key)                          
-        
-        # Read the file
-        with open('store/' + content, 'rb') as f:
-            original = f.read()
-    
-        if encrypt:
-            # encrypt and save 
-            encrypted = cipher_suite.encrypt(original)
-            with open('store/' + content, 'wb') as file:
-                file.write(encrypted)
-                logging.debug(f'{content} has been encrypted')  
-        else:
-            decrypted = cipher_suite.decrypt(original)
-            with open('store/' + content, 'wb') as file:
-                file.write(decrypted)
-                logging.debug(f'{content} has been decrypted')  
+    def change_balance(increase: bool = True) -> None:
+        bal = DBManager().read('balance', User, f"id = '{LoggedUser.ID}'")   
+        bal = int(bal[0][0]) + 1 if increase else int(bal[0][0]) - 1
+        DBManager().update(User, 'balance', bal, f"id = '{LoggedUser.ID}'") 
 
     @staticmethod
     def shopping() -> None:
@@ -242,10 +222,10 @@ class Operations:
         # if the user balance is zero he can not do shopping
         bal = DBManager().read('balance', User, f"id = '{LoggedUser.ID}'")
         if int(bal[0][0]) < 1:
-            print('Gift and give! your balance is zero write now ...')
+            print('Gift and get! your balance is zero write now ...')
         else:     
             # Read the content of store that the user is not its owner
-            data = DBManager().read('id, name, owner', Content, f"user_id != '{LoggedUser.ID}'")
+            data = DBManager().read('id, name, owner, user_id', Content, f"user_id != '{LoggedUser.ID}'")
             Operations.shopping_continue(data)
 
     @staticmethod   
@@ -255,48 +235,58 @@ class Operations:
         clear_screen()
         print('ID        Book Name           Owner')
         print('============================================\n')
+       
         content_id = []   
         content_name = []
+        user_id = []
         for row in data:
             print(f"{len(content_id)+1:<10}{row[1]:<20}{row[2]:<20}") 
             content_id.append(row[0])
             content_name.append(row[1]) 
+            user_id.append(row[3])
 
         # If there is information then get key from user
         if content_id:
             key = input('\nID.select C.cancel >> ')
-        
-            if key.lower() == 'c':
-                pass
-            else:
+            if key.lower() != 'c':
                 try:
                     key = int(key)
+                except:
+                    Operations.shopping_continue(data)
+                else:
                     if key < 1 or key > len(content_id):
                         Operations.shopping()   
                     else:
-                        users_comment = DBManager().read('code', Comment, f"id = '{content_id[key-1]}'") 
+                        users_comment = DBManager().read('comment', Comment, f"content_id = '{content_id[key-1]}'") 
+                        print('\n<-- Comments on your selected content -->\n')
                         for c in users_comment:
-                            print(c)
-
-                        switch = input('C.comment B.buy >> ')
-
+                            print(c[0])
+                        switch = input('\nC.comment B.buy >> ')
                         # Buy the content
                         if  switch.lower() == 'b':
-                            
-                            # Re-crypt the file
-                            code = DBManager().read('code', User, f"id = '{content_id[key-1]}'")  
-                            Operations.cryptic(code, content_name[key-1], encrypt=False)
-                            code = DBManager().read('code', User, f"id = '{LoggedUser.ID}'")
-                            Operations.cryptic(code, content_name[key-1], encrypt=True) 
+                            if os.path.exists(f"store/{content_name[key-1]}"):
+                                # Re-crypt the file
+                                code = DBManager().read('code', User, f"id = '{user_id[key-1]}'")[0][0]
+                                crypto_key = load_key(f'users/{code}.key')
+                                decrypt(f'store/{content_name[key-1]}', crypto_key)
+                                code = DBManager().read('code', User, f"id = '{LoggedUser.ID}'")[0][0] 
+                                crypto_key = load_key(f'users/{code}.key')
+                                encrypt(f'store/{content_name[key-1]}', crypto_key)
 
-                            # Change the owner of content
-                            DBManager().update(Content, 'user_id', {LoggedUser.ID}, f"user_id = '{key-1}'") 
-                            print('Your shopping has been successfully\n')
-                    
-                            # Decrease balance by one and update the database
-                            bal = DBManager().read('balance', User, f"id = '{LoggedUser.ID}'")   
-                            bal = int(bal[0][0]) - 1
-                            DBManager().update(User, 'balance', bal, f"id = '{LoggedUser.ID}'") 
+                                # Change the owner of content
+                                DBManager().update(Content, 'user_id', f'{LoggedUser.ID}', f"id = '{content_id[key-1]}'") 
+                                logging.debug(f'Owner has been changed for: {content_name[key-1]}')
+
+                                # Decrease balance by one and update the database
+                                Operations.change_balance(False)
+                                logging.debug(f'Balance has been updated for: {LoggedUser.FULLNAME}')
+
+                                print('Your shopping has been successfully\n')                            
+                            else:
+                                DBManager().delete(Comment, f'content_id = {content_id[key-1]}')   
+                                DBManager().delete(Content, f'id = {content_id[key-1]}')    
+                                logging.warning(f'Database and store was not sync for: {content_name[key-1]}')
+                                print('Shop was in update process, please refresh the page\n')
 
                         # Comment on the content
                         elif switch.lower() == 'c':
@@ -308,10 +298,6 @@ class Operations:
                                 print('Your comment has been send successfully\n')
                         else:
                             Operations.shopping_continue(data)
-                except:
-                    Operations.shopping_continue(data)
-
-
 
 
     
