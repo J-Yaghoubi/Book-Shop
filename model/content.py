@@ -17,8 +17,7 @@ class Content(DBModel):
         name VARCHAR(50) NOT NULL,
         owner VARCHAR(50) NOT NULL,
         user_id int REFERENCES users (id),
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     """
     TABLE: ClassVar[str] = 'contents'
     owner : str

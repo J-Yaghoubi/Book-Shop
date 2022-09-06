@@ -77,13 +77,18 @@ class Operations:
         if fname == '': fname = LoggedUser.FIRSTNAME
         if lname == '': lname = LoggedUser.LASTNAME
         if phone == '': phone = LoggedUser.PHONE
-        if password == '': password = LoggedUser.PASSWORD
 
+        # validate inputs and return validator error if there is any bad input
         try:    
-            # validate the inputted data
-            User(fname, lname, phone , LoggedUser.NATIONAL, LoggedUser.USERNAME, password)
-            # update information's
-            DBManager().update(User, '(first_name, last_name, phone, password)', f"('{fname.lower()}', '{lname.lower()}', '{phone}', '{password}')", f"id = '{LoggedUser.ID}'")
+            # if user do not changed his password, validate new data with old-password, 
+            # else validate new password and store sha1 of it in the database
+            if password == '': 
+                User(fname, lname, phone , LoggedUser.NATIONAL, LoggedUser.USERNAME, LoggedUser.PASSWORD)
+                DBManager().update(User, '(first_name, last_name, phone, password)', f"('{fname.lower()}', '{lname.lower()}', '{phone}', '{LoggedUser.PASSWORD}')", f"id = '{LoggedUser.ID}'")
+            else:
+                temp = User(fname, lname, phone , LoggedUser.NATIONAL, LoggedUser.USERNAME, password)
+                DBManager().update(User, '(first_name, last_name, phone, password)', f"('{fname.lower()}', '{lname.lower()}', '{phone}', '{temp.password}')", f"id = '{LoggedUser.ID}'")
+
             logging.debug(f'Data edited for: {LoggedUser.FULLNAME}')
             print('\nEdit has been successful')
 
@@ -116,23 +121,29 @@ class Operations:
         find = DBManager().read('*', User, f"username = '{u}' and password = '{p}'")
 
         if not find:
-            logging.warning(f'Failed attempt for login')
-            print('\nSorry!\nPlease check your input or register as new client')
-        else:
-            find = find[0]
-            LoggedUser.ID = find[0]
-            LoggedUser.FIRSTNAME = find[1]
-            LoggedUser.LASTNAME = find[2]
-            LoggedUser.PHONE = find[3]
-            LoggedUser.NATIONAL = find[4]
-            LoggedUser.USERNAME = find[5]
-            LoggedUser.PASSWORD = find[6]
-            LoggedUser.BALANCE = find[7]
-            LoggedUser.CODE = find[8]
-            LoggedUser.FULLNAME = f'{LoggedUser.FIRSTNAME} {LoggedUser.LASTNAME}'
-            logging.debug(f'{LoggedUser.FULLNAME} has been logged in')       
-            print(f'\nWelcome {LoggedUser.FULLNAME}')
-            return 'Logged'
+            c = getpass(f'forgot your password? code >> ') 
+            find = DBManager().read('*', User, f"username = '{u}' and code = '{c}'")
+            if not find:     
+                logging.warning(f'\nFailed attempt for login')
+                print('\nSorry!\nPlease check your input or register as new client')
+                return None
+        # We can not create a model and save it in the variable because for 
+        # every user there is a unique uuid-code, so we store needed information 
+        # separately in the special class
+        find = find[0]
+        LoggedUser.ID = find[0]
+        LoggedUser.FIRSTNAME = find[1]
+        LoggedUser.LASTNAME = find[2]
+        LoggedUser.PHONE = find[3]
+        LoggedUser.NATIONAL = find[4]
+        LoggedUser.USERNAME = find[5]
+        LoggedUser.PASSWORD = find[6]
+        LoggedUser.BALANCE = find[7]
+        LoggedUser.CODE = find[8]
+        LoggedUser.FULLNAME = f'{LoggedUser.FIRSTNAME} {LoggedUser.LASTNAME}'
+        logging.debug(f'{LoggedUser.FULLNAME} has been logged in')       
+        print(f'\nWelcome {LoggedUser.FULLNAME}')
+        return 'Logged'
 
     @staticmethod
     def information() -> None:
@@ -149,7 +160,7 @@ class Operations:
             Gift a book to the shop and increase the balance
         """
         name = input('Book name.extension >> ') 
-        path = input('Book patch >> ') 
+        path = input('Book path >> ') 
         result = DBManager().read('name', Content, f"name = '{name}'")  
 
         if result:
@@ -316,7 +327,7 @@ class Operations:
                             Operations.shopping_continue(data)
 
     @staticmethod  
-    def logout() -> None:
+    def logout() -> str:
         print('Logging out...')
         logging.debug(f'{LoggedUser.FULLNAME} has been logged-out')
         return 'Main menu'

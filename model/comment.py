@@ -14,7 +14,8 @@ class Comment(DBModel):
         id SERIAL PRIMARY KEY,
         comment TEXT NOT NULL,
         user_id int REFERENCES users (id),
-        content_id int REFERENCES contents (id)
+        content_id int REFERENCES contents (id),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     """
     TABLE: ClassVar[str] = 'comments'
     comment : str

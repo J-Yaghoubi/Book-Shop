@@ -20,14 +20,12 @@ class TestUserModel:
 
     def test_user_sad(self):
         pytest.raises(TypeError, User)
-
         pytest.raises(InputTypeError, User, 1, 'Yaghoubi', '09123536842', '0386628221', 'jeff', 'qwer!1234')
         pytest.raises(InputTypeError, User, 'jafar', 1, '09123536842', '0386628221', 'jeff', 'qwer!1234')
         pytest.raises(InputTypeError, User, 'jafar', 'Yaghoubi', 1, '0386628221', 'jeff', 'qwer!1234')
         pytest.raises(InputTypeError, User, 'jafar', 'Yaghoubi', '09123536842', 1, 'jeff', 'qwer!1234')
         pytest.raises(InputTypeError, User, 'jafar', 'Yaghoubi', '09123536842', '0386628221', 1, 'qwer!1234')
-        pytest.raises(InputTypeError, User, 'jafar', 'Yaghoubi', '09123536842', '0386628221', 'jeff', 1)
-                                        
+        pytest.raises(InputTypeError, User, 'jafar', 'Yaghoubi', '09123536842', '0386628221', 'jeff', 1)                                   
         pytest.raises(StructureError, User, '1', 'Yaghoubi', '09123536842', '0386628221', 'jeff', 'qwer!1234')   
         pytest.raises(StructureError, User, 'jafar', 'Yaghoubi', '123536842', '0386628221', 'jeff', 'qwer!1234')  
         pytest.raises(StructureError, User, 'jafar', '1', '09123536842', '0386628221', 'jeff', 'qwer!1234')   
@@ -65,4 +63,4 @@ class TestContentModel:
     def test_comment_sad(self):
         pytest.raises(StructureError, Content, '', '1', 'file')  
         pytest.raises(StructureError, Content, 'owner', '', 'file')         
-
+        pytest.raises(StructureError, Content, 'owner', '1', '') 
