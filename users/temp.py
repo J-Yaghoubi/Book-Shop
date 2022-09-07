@@ -1,5 +1,9 @@
 
 class LoggedUser: 
+    """
+    This class is for storing information of logged user
+    """
+
     ID = None
     FIRSTNAME = None
     LASTNAME = None

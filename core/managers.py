@@ -4,7 +4,7 @@ from psycopg2._psycopg import connection
 
 from model.template import DBModel
 from configs import DbConfig
-
+from exceptions import BadQueryError
 
 class DBManager:
 
@@ -47,9 +47,13 @@ class DBManager:
         """
             Execute the query
         """
-        with self.conn.cursor() as curs:
-            curs.execute(query)
-            return curs.fetchall() if data else None
+        try:
+            with self.conn.cursor() as curs:
+                curs.execute(query)
+                return curs.fetchall() if data else None         
+        except:
+            raise BadQueryError('Query', query)
+
 
     def make(self) -> None:
         """

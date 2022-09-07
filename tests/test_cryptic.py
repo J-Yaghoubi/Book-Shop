@@ -21,7 +21,7 @@ class TestCryptic:
         os.remove(f"test.txt")
         os.remove(f"key.key")
 
-    def test_cryptic(self, setup):
+    def test_cryptic_success(self, setup):
         write_key('key.key')
         key = load_key('key.key')
 

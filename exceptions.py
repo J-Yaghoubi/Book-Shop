@@ -18,3 +18,6 @@ class StructureError(CustomException):
 class InputTypeError(CustomException):
     pass
 
+
+class BadQueryError(CustomException):
+    pass

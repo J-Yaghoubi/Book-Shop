@@ -124,12 +124,11 @@ class Operations:
             c = getpass(f'forgot your password? code >> ') 
             find = DBManager().read('*', User, f"username = '{u}' and code = '{c}'")
             if not find:     
-                logging.warning(f'\nFailed attempt for login')
+                logging.warning(f'Failed attempt for login')
                 print('\nSorry!\nPlease check your input or register as new client')
                 return None
-        # We can not create a model and save it in the variable because for 
-        # every user there is a unique uuid-code, so we store needed information 
-        # separately in the special class
+        # for every user there is a unique uuid-code, so we store needed 
+        # information separately in the special class
         find = find[0]
         LoggedUser.ID = find[0]
         LoggedUser.FIRSTNAME = find[1]
@@ -196,7 +195,7 @@ class Operations:
             List the user's asset and provide some functionality to working on them
         """
         clear_screen()
-        print('Order        Book Name           ')
+        print('Order      Book Name           ')
         print('==================================\n')
        
         content_id = []   
