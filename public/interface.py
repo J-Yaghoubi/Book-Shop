@@ -185,7 +185,7 @@ class Operations:
 
                 # Increase balance by one and update the database
                 Operations.update_balance()
-                logging.debug(f'Balance for {LoggedUser.FULLNAME} increased by 0ne')  
+                logging.debug(f'Balance for {LoggedUser.FULLNAME} increased by One')  
 
                 print('Your gift added to the store successfully...')
 

@@ -18,21 +18,33 @@ class TestUserModel:
         assert self.p1.code
         assert self.p1.permission
 
-    def test_user_raise(self):
-        pytest.raises(InputTypeError, User, 1, 'Yaghoubi', '09123536842', '0386628221', 'jeff', 'qwer!1234')
-        pytest.raises(InputTypeError, User, 'jafar', 1, '09123536842', '0386628221', 'jeff', 'qwer!1234')
-        pytest.raises(InputTypeError, User, 'jafar', 'Yaghoubi', 1, '0386628221', 'jeff', 'qwer!1234')
-        pytest.raises(InputTypeError, User, 'jafar', 'Yaghoubi', '09123536842', 1, 'jeff', 'qwer!1234')
-        pytest.raises(InputTypeError, User, 'jafar', 'Yaghoubi', '09123536842', '0386628221', 1, 'qwer!1234')
-        pytest.raises(InputTypeError, User, 'jafar', 'Yaghoubi', '09123536842', '0386628221', 'jeff', 1)                                   
-        pytest.raises(StructureError, User, '1', 'Yaghoubi', '09123536842', '0386628221', 'jeff', 'qwer!1234')   
-        pytest.raises(StructureError, User, 'jafar', 'Yaghoubi', '123536842', '0386628221', 'jeff', 'qwer!1234')  
-        pytest.raises(StructureError, User, 'jafar', '1', '09123536842', '0386628221', 'jeff', 'qwer!1234')   
-        pytest.raises(StructureError, User, 'jafar', 'Yaghoubi', '1', '0386628221', 'jeff', 'qwer!1234')   
-        pytest.raises(StructureError, User, 'jafar', 'Yaghoubi', '09123536842', '1', 'jeff', 'qwer!1234')          
-        pytest.raises(StructureError, User, 'jafar', 'Yaghoubi', '09123536842', '0386628221', '1', 'qwer!1234')   
-        pytest.raises(StructureError, User, 'jafar', 'Yaghoubi', '09123536842', '0386628221', 'jeff', '1')         
-        pytest.raises(StructureError, User, 'jafar', 'Yaghoubi', '09123536842', '0386628221', 'jeff', '123454567!')         
+    @pytest.mark.parametrize('first_name, last_name, phone, national_id, username, password',
+        [
+            ('1', 'Yaghoubi', '09123536842', '0386628221', 'jeff', 'qwer!1234'), 
+            ('jafar', 'Yaghoubi', '123536842', '0386628221', 'jeff', 'qwer!1234'), 
+            ('jafar', '1', '09123536842', '0386628221', 'jeff', 'qwer!1234'), 
+            ('jafar', 'Yaghoubi', '1', '0386628221', 'jeff', 'qwer!1234'), 
+            ('jafar', 'Yaghoubi', '09123536842', '1', 'jeff', 'qwer!1234'), 
+            ('jafar', 'Yaghoubi', '09123536842', '0386628221', '1', 'qwer!1234'), 
+            ('jafar', 'Yaghoubi', '09123536842', '0386628221', 'jeff', '1'), 
+            ('jafar', 'Yaghoubi', '09123536842', '0386628221', 'jeff', '123454567!')               
+        ]
+    )
+    def test_user_raise_structure(self, first_name, last_name, phone, national_id, username, password):
+        pytest.raises(StructureError, User, first_name, last_name, phone, national_id, username, password)
+
+    @pytest.mark.parametrize('first_name, last_name, phone, national_id, username, password',
+        [
+            (1, 'Yaghoubi', '09123536842', '0386628221', 'jeff', 'qwer!1234'),
+            ('jafar', 1, '09123536842', '0386628221', 'jeff', 'qwer!1234'),
+            ('jafar', 'Yaghoubi', 1, '0386628221', 'jeff', 'qwer!1234'),    
+            ('jafar', 'Yaghoubi', '09123536842', 1, 'jeff', 'qwer!1234'), 
+            ('jafar', 'Yaghoubi', '09123536842', '0386628221', 1, 'qwer!1234'), 
+            ('jafar', 'Yaghoubi', '09123536842', '0386628221', 'jeff', 1)           
+        ]
+    )
+    def test_user_raise_type(self, first_name, last_name, phone, national_id, username, password):
+        pytest.raises(InputTypeError, User, first_name, last_name, phone, national_id, username, password)
 
 
 class TestCommentModel:
@@ -43,23 +55,35 @@ class TestCommentModel:
         assert self.p1.user_id == '1'
         assert self.p1.content_id == '2'
 
-    def test_comment_raise(self):
-        pytest.raises(StructureError, Comment, '', '1', '1')  
-        pytest.raises(StructureError, Comment, 'comment', '10000000000', '1')         
-        pytest.raises(StructureError, Comment, 'comment', '1', '10000000000')   
-        pytest.raises(StructureError, Comment, 'comment', 'abc', '1')         
-        pytest.raises(StructureError, Comment, 'comment', '1', 'abc') 
+    @pytest.mark.parametrize('comment, user_id, content_id',
+        [
+            ('', '1', '1'),
+            ('comment', '10000000000', '1'), 
+            ('comment', '1', '10000000000'), 
+            ('comment', 'abc', '1'), 
+            ('comment', '1', 'abc')           
+        ]
+    )
+
+    def test_comment_raise(self, comment, user_id, content_id):
+        pytest.raises(StructureError, Comment, comment, user_id, content_id)  
 
 
 class TestContentModel:
 
-    def test_comment_success(self):
+    def test_content_success(self):
         self.p1 = Content('Seyed Jafar Yaghoubi', '1', 'file')
         assert self.p1.owner == 'Seyed Jafar Yaghoubi'
         assert self.p1.user_id == '1'
         assert self.p1.name == 'file'
 
-    def test_comment_raise(self):
-        pytest.raises(StructureError, Content, '', '1', 'file')  
-        pytest.raises(StructureError, Content, 'owner', '', 'file')         
-        pytest.raises(StructureError, Content, 'owner', '1', '') 
+    @pytest.mark.parametrize('owner, user_id, name',
+        [
+            ('', '1', 'file'),
+            ('foo', '', '1'), 
+            ('foo', '1', ''),         
+        ]
+    )
+
+    def test_content_raise(self, owner, user_id, name):
+        pytest.raises(StructureError, Content, owner, user_id, name)  
