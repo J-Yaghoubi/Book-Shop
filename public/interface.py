@@ -54,7 +54,7 @@ class Operations:
                 write_key('users/' + u.code + '.key')
 
                 # Log the operation
-                logging.debug(f'New User has been registered: {inputs[0].lower()} {inputs[1].lower()}')
+                logging.info(f'New User has been registered: {inputs[0].lower()} {inputs[1].lower()}')
                 print('\nRegistration has been successful')
                 print(f'\nThis is your encrypting code: {u.code}\nStore it in safe place...')
 
@@ -89,7 +89,7 @@ class Operations:
                 temp = User(fname, lname, phone , LoggedUser.NATIONAL, LoggedUser.USERNAME, password)
                 DBManager().update(User, '(first_name, last_name, phone, password)', f"('{fname.lower()}', '{lname.lower()}', '{phone}', '{temp.password}')", f"id = '{LoggedUser.ID}'")
 
-            logging.debug(f'Data edited for: {LoggedUser.FULLNAME}')
+            logging.info(f'Data edited for: {LoggedUser.FULLNAME}')
             print('\nEdit has been successful')
 
         except StructureError as e:
@@ -140,7 +140,7 @@ class Operations:
         LoggedUser.BALANCE = find[7]
         LoggedUser.CODE = find[8]
         LoggedUser.FULLNAME = f'{LoggedUser.FIRSTNAME} {LoggedUser.LASTNAME}'
-        logging.debug(f'{LoggedUser.FULLNAME} has been logged in')       
+        logging.info(f'{LoggedUser.FULLNAME} has been logged in')       
         print(f'\nWelcome {LoggedUser.FULLNAME}')
         return 'Logged'
 
@@ -181,11 +181,11 @@ class Operations:
 
                 # Save information to the database
                 DBManager().insert(Content(f'{LoggedUser.FULLNAME}', LoggedUser.ID, name))
-                logging.debug(f'{name} has been registered for {LoggedUser.FULLNAME}')   
+                logging.info(f'{name} has been registered for {LoggedUser.FULLNAME}')   
 
                 # Increase balance by one and update the database
                 Operations.update_balance()
-                logging.debug(f'Balance for {LoggedUser.FULLNAME} increased by One')  
+                logging.info(f'Balance for {LoggedUser.FULLNAME} increased by One')  
 
                 print('Your gift added to the store successfully...')
 
@@ -301,11 +301,11 @@ class Operations:
                                 # Change the owner of content
                                 DBManager().update(Content, 'user_id', f'{LoggedUser.ID}', f"id = '{content_id[key-1]}'") 
                                 DBManager().update(Content, 'owner', f"'{LoggedUser.FULLNAME}'", f"id = '{content_id[key-1]}'")
-                                logging.debug(f'Owner has been changed for: {content_name[key-1]}')
+                                logging.info(f'Owner has been changed for: {content_name[key-1]}')
 
                                 # Decrease balance by one and update the database
                                 Operations.update_balance(False)
-                                logging.debug(f'Balance has been updated for: {LoggedUser.FULLNAME}')
+                                logging.info(f'Balance has been updated for: {LoggedUser.FULLNAME}')
                                 print('Your shopping has been successfully\n')                            
                             
                             else:
@@ -320,7 +320,7 @@ class Operations:
                             comment = input('Your comment (max 250) >> ')[:249]
                             if comment: 
                                 DBManager().insert(Comment(f"{LoggedUser.FULLNAME}: {comment}", LoggedUser.ID, content_id[key-1]))
-                                logging.debug(f'Comment on content id: {content_id[key-1]} by: {LoggedUser.FULLNAME}') 
+                                logging.info(f'Comment on content id: {content_id[key-1]} by: {LoggedUser.FULLNAME}') 
                                 print('Your comment has been send successfully\n')
                         else:
                             Operations.shopping_continue(data)
@@ -328,7 +328,7 @@ class Operations:
     @staticmethod  
     def logout() -> str:
         print('Logging out...')
-        logging.debug(f'{LoggedUser.FULLNAME} has been logged-out')
+        logging.info(f'{LoggedUser.FULLNAME} has been logged-out')
         return 'Main menu'
 
     
