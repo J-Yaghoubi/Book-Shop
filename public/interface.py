@@ -15,6 +15,7 @@ from users.temp import LoggedUser
 from core.managers import DBManager
 from core.cryptic import *
 
+logger = logging.getLogger(__name__) 
 
 class Operations:
     """
@@ -54,12 +55,12 @@ class Operations:
                 write_key('users/' + u.code + '.key')
 
                 # Log the operation
-                logging.info(f'New User has been registered: {inputs[0].lower()} {inputs[1].lower()}')
+                logger.info(f'New User has been registered: {inputs[0].lower()} {inputs[1].lower()}')
                 print('\nRegistration has been successful')
                 print(f'\nThis is your encrypting code: {u.code}\nStore it in safe place...')
 
         except StructureError as e:
-            logging.warning(f'Problem in reregistration for: {inputs[0].lower()} {inputs[1].lower()}')
+            logger.warning(f'Problem in reregistration for: {inputs[0].lower()} {inputs[1].lower()}')
             print(f'\n{e}')
 
     @staticmethod
@@ -89,11 +90,11 @@ class Operations:
                 temp = User(fname, lname, phone , LoggedUser.NATIONAL, LoggedUser.USERNAME, password)
                 DBManager().update(User, '(first_name, last_name, phone, password)', f"('{fname.lower()}', '{lname.lower()}', '{phone}', '{temp.password}')", f"id = '{LoggedUser.ID}'")
 
-            logging.info(f'Data edited for: {LoggedUser.FULLNAME}')
+            logger.info(f'Data edited for: {LoggedUser.FULLNAME}')
             print('\nEdit has been successful')
 
         except StructureError as e:
-            logging.warning(f'Failed to edit data for: {LoggedUser.FULLNAME}')
+            logger.warning(f'Failed to edit data for: {LoggedUser.FULLNAME}')
             print(e)
 
     @staticmethod
@@ -106,7 +107,7 @@ class Operations:
         print('==================================================\n')
         for row in data:
             print(f"{str(row[0]):<10}{row[1]:<20}{row[2]:<26}") 
-        logging.warning(f'Anonymous user explored the shop')
+        logger.warning(f'Anonymous user explored the shop')
 
     @staticmethod
     def login() -> None | str:
@@ -124,7 +125,7 @@ class Operations:
             c = getpass(f'forgot your password? code >> ') 
             find = DBManager().read('*', User, f"username = '{u}' and code = '{c}'")
             if not find:     
-                logging.warning(f'Failed attempt for login')
+                logger.warning(f'Failed attempt for login')
                 print('\nSorry!\nPlease check your input or register as new client')
                 return None
         # for every user there is a unique uuid-code, so we store needed 
@@ -140,7 +141,7 @@ class Operations:
         LoggedUser.BALANCE = find[7]
         LoggedUser.CODE = find[8]
         LoggedUser.FULLNAME = f'{LoggedUser.FIRSTNAME} {LoggedUser.LASTNAME}'
-        logging.info(f'{LoggedUser.FULLNAME} has been logged in')       
+        logger.info(f'{LoggedUser.FULLNAME} has been logged in')       
         print(f'\nWelcome {LoggedUser.FULLNAME}')
         return 'Logged'
 
@@ -163,7 +164,7 @@ class Operations:
         result = DBManager().read('name', Content, f"name = '{name}'")  
 
         if result:
-            logging.warning(f'attempt for adding duplicated {name}')  
+            logger.warning(f'attempt for adding duplicated {name}')  
             print('You can not add duplicated file to store!')
         else:
             try:
@@ -171,7 +172,7 @@ class Operations:
                 shutil.copy2(path + name, 'store/' + name)
             except:
                 print('Transferring has been field. Please check the path and filename')
-                logging.warning(f'Failed attempt for adding: {name}')
+                logger.warning(f'Failed attempt for adding: {name}')
 
             else:    
                 # Read the key and encrypt file with this key
@@ -181,11 +182,11 @@ class Operations:
 
                 # Save information to the database
                 DBManager().insert(Content(f'{LoggedUser.FULLNAME}', LoggedUser.ID, name))
-                logging.info(f'{name} has been registered for {LoggedUser.FULLNAME}')   
+                logger.info(f'{name} has been registered for {LoggedUser.FULLNAME}')   
 
                 # Increase balance by one and update the database
                 Operations.update_balance()
-                logging.info(f'Balance for {LoggedUser.FULLNAME} increased by One')  
+                logger.info(f'Balance for {LoggedUser.FULLNAME} increased by One')  
 
                 print('Your gift added to the store successfully...')
 
@@ -231,7 +232,7 @@ class Operations:
 
                             DBManager().delete(Content, f'id = {content_id[key-1]}')    
                             Operations.update_balance(False)
-                            logging.warning(f'Content removed from the shop: {content_name[key-1]}')
+                            logger.warning(f'Content removed from the shop: {content_name[key-1]}')
 
                         else:
                             Operations.assets()
@@ -301,17 +302,17 @@ class Operations:
                                 # Change the owner of content
                                 DBManager().update(Content, 'user_id', f'{LoggedUser.ID}', f"id = '{content_id[key-1]}'") 
                                 DBManager().update(Content, 'owner', f"'{LoggedUser.FULLNAME}'", f"id = '{content_id[key-1]}'")
-                                logging.info(f'Owner has been changed for: {content_name[key-1]}')
+                                logger.info(f'Owner has been changed for: {content_name[key-1]}')
 
                                 # Decrease balance by one and update the database
                                 Operations.update_balance(False)
-                                logging.info(f'Balance has been updated for: {LoggedUser.FULLNAME}')
+                                logger.info(f'Balance has been updated for: {LoggedUser.FULLNAME}')
                                 print('Your shopping has been successfully\n')                            
                             
                             else:
                                 DBManager().delete(Comment, f'content_id = {content_id[key-1]}')   
                                 DBManager().delete(Content, f'id = {content_id[key-1]}')    
-                                logging.warning(f'Database and store was not sync for: {content_name[key-1]}')
+                                logger.warning(f'Database and store was not sync for: {content_name[key-1]}')
                                 print('Shop was in update process, please refresh the page\n')
 
                         # Comment on the content
@@ -320,7 +321,7 @@ class Operations:
                             comment = input('Your comment (max 250) >> ')[:249]
                             if comment: 
                                 DBManager().insert(Comment(f"{LoggedUser.FULLNAME}: {comment}", LoggedUser.ID, content_id[key-1]))
-                                logging.info(f'Comment on content id: {content_id[key-1]} by: {LoggedUser.FULLNAME}') 
+                                logger.info(f'Comment on content id: {content_id[key-1]} by: {LoggedUser.FULLNAME}') 
                                 print('Your comment has been send successfully\n')
                         else:
                             Operations.shopping_continue(data)
@@ -328,7 +329,7 @@ class Operations:
     @staticmethod  
     def logout() -> str:
         print('Logging out...')
-        logging.info(f'{LoggedUser.FULLNAME} has been logged-out')
+        logger.info(f'{LoggedUser.FULLNAME} has been logged-out')
         return 'Main menu'
 
     
