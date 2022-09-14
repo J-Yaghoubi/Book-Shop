@@ -26,7 +26,7 @@ class DBManager:
 
     def _add_quotes(self, coted_tpl: tuple) -> str:
         """
-            Remove quotes from tuple and return as string
+            Add quotes to the tuple members and return as string
         """
         temp = ''
         for i in list(coted_tpl):
